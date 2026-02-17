@@ -237,7 +237,7 @@
                 <!-- Scroll Container -->
                 <div class="fretboard-scroll overflow-x-auto pb-2 relative">
                     <!-- Added padding-left to container to make room for tuning labels -->
-                    <div id="fretboardContainer" class="relative min-w-[500px] h-[150px] bg-[#221e1b] ml-6 mr-2 shadow-inner rounded-r-md border-r-4 border-slate-500">
+                    <div id="fretboardContainer" class="relative min-w-[720px] h-[150px] bg-[#221e1b] ml-6 mr-2 shadow-inner rounded-r-md border-r-4 border-slate-500">
                         <!-- Generated via JS -->
                     </div>
                 </div>
@@ -1134,7 +1134,7 @@ function renderChords() {
 
 function renderFretboard() {
     elements.fretboardContainer.innerHTML = '';
-    const numFrets = 15;
+    const numFrets = 24;
     const useFlats = shouldUseFlats(state.keyRoot);
     
     let highlightedNotes = [];
@@ -1165,13 +1165,13 @@ function renderFretboard() {
         fret.style.left = `${pos}px`;
         elements.fretboardContainer.appendChild(fret);
 
-        if ([3, 5, 7, 9].includes(i)) {
+        if ([3, 5, 7, 9, 15, 17, 19, 21].includes(i)) {
             const marker = document.createElement('div');
             marker.className = 'fret-marker';
             marker.style.left = `${pos - (FRET_WIDTH/2)}px`;
             elements.fretboardContainer.appendChild(marker);
         }
-        if (i === 12) {
+        if (i === 12 || i === 24) {
             const m1 = document.createElement('div');
             m1.className = 'fret-marker double-marker-1';
             m1.style.left = `${pos - (FRET_WIDTH/2)}px`;
