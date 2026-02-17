@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Guitar Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom Scrollbar for Fretboard */
+        .fretboard-scroll::-webkit-scrollbar {
+            height: 4px; /* Thinner scrollbar */
+        }
+        .fretboard-scroll::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .fretboard-scroll::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        /* Range Input Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        /* Metronome Pulse Animation */
+        .pulse-active {
+            animation: pulse-ring 0.15s ease-out;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+            50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(56, 189, 248, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+        }
+
+        /* Fretboard Styling */
+        .string-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #64748b;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .fret-wire {
+            width: 3px;
+            background: linear-gradient(90deg, #94a3b8, #cbd5e1, #64748b);
+            height: 100%;
+            position: absolute;
+            right: 0;
+            z-index: 1;
+        }
+        .fret-marker {
+            width: 10px;
+            height: 10px;
+            background: #334155;
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+        }
+        .double-marker-1 { top: 30%; }
+        .double-marker-2 { top: 70%; }
+
+        .note-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            z-index: 10;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .tuning-label {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            z-index: 10;
+            position: relative;
+            color: #94a3b8; /* Slate 400 */
+        }
+
+        .chord-card.active {
+            background-color: #0f172a;
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="flex-none p-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center z-20">
+        <h1 class="text-lg font-bold text-sky-400 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            Guitar Companion
+        </h1>
+        <button id="settingsBtn" class="text-slate-400 hover:text-white p-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto bg-slate-900 pb-20">
+        
+        <!-- Drum Machine Section -->
+        <section class="p-3 border-b border-slate-800">
+            <div class="bg-slate-800 rounded-xl p-3 shadow-lg flex flex-col gap-3">
+                
+                <!-- Controls Row -->
+                <div class="flex items-center gap-4">
+                    <!-- Play Button -->
+                    <button id="playBtn" class="flex-none w-14 h-14 rounded-xl bg-sky-500 hover:bg-sky-400 text-white shadow-lg shadow-sky-900/50 flex items-center justify-center transition active:scale-95">
+                        <svg id="playIcon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+
+                    <!-- BPM Controls -->
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-baseline gap-1">
+                                <span id="bpmDisplay" class="text-2xl font-bold text-white tracking-tight">100</span>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold">BPM</span>
+                            </div>
+                            <div id="beatIndicator" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-100"></div>
+                        </div>
+                        <input type="range" id="bpmSlider" min="30" max="240" value="100" class="block">
+                    </div>
+
+                    <!-- Fine Tune Buttons -->
+                    <div class="flex flex-col gap-1">
+                        <button id="increaseBpm" class="w-10 h-6 rounded bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-lg font-bold text-slate-300 shadow active:bg-slate-500">+</button>
+                        <button id="decreaseBpm" class="w-10 h-6 rounded bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-lg font-bold text-slate-300 shadow active:bg-slate-500">-</button>
+                    </div>
+                </div>
+
+                <!-- Rhythm Selector -->
+                <div class="flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                    <select id="rhythmSelect" class="bg-transparent text-sm font-semibold text-slate-300 w-full focus:outline-none">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Theory Controls -->
+        <section class="p-3 space-y-3">
+            <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                <!-- Key Select -->
+                <div class="flex-none w-28">
+                    <label class="text-[10px] text-slate-500 mb-1 block uppercase tracking-wide">Key</label>
+                    <select id="keySelect" class="w-full bg-slate-800 text-white text-sm p-2 rounded-lg border border-slate-700 focus:outline-none focus:border-sky-500">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <!-- Scale Select -->
+                <div class="flex-none w-32">
+                    <label class="text-[10px] text-slate-500 mb-1 block uppercase tracking-wide">Scale / Mode</label>
+                    <select id="scaleSelect" class="w-full bg-slate-800 text-white text-sm p-2 rounded-lg border border-slate-700 focus:outline-none focus:border-sky-500">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <!-- Tuning Select -->
+                <div class="flex-none w-36">
+                    <label class="text-[10px] text-slate-500 mb-1 block uppercase tracking-wide">Tuning</label>
+                    <select id="tuningSelect" class="w-full bg-slate-800 text-white text-sm p-2 rounded-lg border border-slate-700 focus:outline-none focus:border-sky-500">
+                        <option value="standard">Standard (E)</option>
+                        <option value="drop_d">Drop D</option>
+                        <option value="open_g">Open G</option>
+                        <option value="open_d">Open D</option>
+                        <option value="dadgad">DADGAD</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Fretboard -->
+            <div class="bg-slate-800 rounded-xl p-1 shadow-lg border border-slate-700 relative">
+                <div class="flex justify-between items-center px-3 py-2 border-b border-slate-700 mb-1">
+                    <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wide">Fretboard</h2>
+                    <span id="viewModeBadge" class="text-[10px] px-2 py-0.5 rounded bg-sky-900 text-sky-200">Scale View</span>
+                </div>
+                
+                <!-- Scroll Container -->
+                <div class="fretboard-scroll overflow-x-auto pb-2 relative">
+                    <!-- Added padding-left to container to make room for tuning labels -->
+                    <div id="fretboardContainer" class="relative min-w-[500px] h-[150px] bg-[#221e1b] ml-6 mr-2 shadow-inner rounded-r-md border-r-4 border-slate-500">
+                        <!-- Generated via JS -->
+                    </div>
+                </div>
+                
+                <div class="px-3 py-1 text-[10px] text-slate-500 flex justify-between h-6 items-center">
+                    <span>&larr; Scroll &rarr;</span>
+                    <button id="resetViewBtn" class="text-sky-400 font-semibold hidden hover:text-sky-300">Reset to Scale</button>
+                </div>
+            </div>
+
+            <!-- Chords in Key -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 mb-2 px-1 uppercase tracking-wide">Chords in Key</h3>
+                <div id="chordsContainer" class="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-7">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Scale Info Accordion -->
+        <section class="p-3 pt-0">
+            <div class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 shadow-lg">
+                <button id="infoToggleBtn" class="w-full flex justify-between items-center p-3 text-left hover:bg-slate-700/50 transition bg-slate-800">
+                    <span class="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        About this Scale
+                    </span>
+                    <svg id="infoChevron" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div id="infoContent" class="hidden px-4 pb-4 pt-1 text-sm text-slate-400 leading-relaxed border-t border-slate-700/50">
+                    <p id="scaleDescription">Loading info...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Tuning Modal -->
+    <div id="tuningModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-slate-700">
+            <h3 class="text-xl font-bold mb-4">Custom Tuning</h3>
+            <div id="stringTuners" class="space-y-3 mb-6">
+                <!-- Tuners generated JS -->
+            </div>
+            <div class="flex gap-3">
+                <button id="closeTuningModal" class="flex-1 py-3 bg-slate-700 rounded-lg font-semibold hover:bg-slate-600">Close</button>
+                <button id="applyCustomTuning" class="flex-1 py-3 bg-sky-500 text-white rounded-lg font-semibold hover:bg-sky-400">Apply</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+/**
+ * AUDIO ENGINE & DRUM SYNTH
+ */
+class DrumSynth {
+    constructor(audioCtx) {
+        this.ctx = audioCtx;
+    }
+
+    createNoiseBuffer() {
+        const bufferSize = this.ctx.sampleRate * 2.0; // 2 seconds
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+        return buffer;
+    }
+
+    playKick(time, vol = 1.0) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+        
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        
+        osc.start(time);
+        osc.stop(time + 0.5);
+    }
+
+    playSnare(time, vol = 1.0) {
+        // Noise part (Snap)
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = "highpass";
+        noiseFilter.frequency.value = 1000;
+        
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this.createNoiseBuffer();
+        
+        const noiseEnvelope = this.ctx.createGain();
+        noiseEnvelope.gain.setValueAtTime(vol * 0.7, time);
+        noiseEnvelope.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+        
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseEnvelope);
+        noiseEnvelope.connect(this.ctx.destination);
+        
+        // Body part (Tone)
+        const osc = this.ctx.createOscillator();
+        osc.type = 'triangle';
+        const oscEnvelope = this.ctx.createGain();
+        osc.frequency.setValueAtTime(150, time);
+        oscEnvelope.gain.setValueAtTime(vol * 0.5, time);
+        oscEnvelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+        
+        osc.connect(oscEnvelope);
+        oscEnvelope.connect(this.ctx.destination);
+        
+        noise.start(time);
+        osc.start(time);
+        noise.stop(time + 0.2);
+        osc.stop(time + 0.2);
+    }
+
+    playHiHat(time, isOpen = false, vol = 1.0) {
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 8000;
+        
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this.createNoiseBuffer();
+        
+        const envelope = this.ctx.createGain();
+        const duration = isOpen ? 0.3 : 0.05;
+        
+        envelope.gain.setValueAtTime(vol * 0.6, time);
+        envelope.gain.exponentialRampToValueAtTime(0.01, time + duration);
+        
+        noise.connect(filter);
+        filter.connect(envelope);
+        envelope.connect(this.ctx.destination);
+        
+        noise.start(time);
+        noise.stop(time + duration);
+    }
+
+    playClick(time, isAccent) {
+        const osc = this.ctx.createOscillator();
+        const envelope = this.ctx.createGain();
+        osc.frequency.value = isAccent ? 1200 : 800;
+        envelope.gain.value = 1;
+        envelope.gain.exponentialRampToValueAtTime(1, time + 0.001);
+        envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+        osc.connect(envelope);
+        envelope.connect(this.ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.05);
+    }
+}
+
+// Rhythm Patterns
+// Code: 
+// k=kick(1.0), K=loud kick(1.0) -- legacy map k to 1.0
+// s=snare(1.0), g=ghost snare(0.3)
+// h=hat(0.4), H=accent hat(0.8)
+// o=open hat(0.6)
+// c=click
+const RHYTHMS = {
+    // --- BASIC ---
+    metronome: {
+        name: "Metronome",
+        group: "Basic",
+        noteValue: 4,
+        steps: [['c+'], ['c'], ['c'], ['c']]
+    },
+    
+    // --- ROCK ---
+    rock_basic: {
+        name: "Basic Rock",
+        group: "Rock",
+        noteValue: 8,
+        steps: [['k', 'H'], ['h'], ['s', 'H'], ['h'], ['k', 'H'], ['h'], ['s', 'H'], ['h']]
+    },
+    hard_rock: {
+        name: "Hard Rock",
+        group: "Rock",
+        noteValue: 8,
+        steps: [['k', 'O'], ['h'], ['s', 'O'], ['h'], ['k', 'k', 'O'], ['h'], ['s', 'O'], ['h']]
+    },
+    punk: {
+        name: "Punk / Fast",
+        group: "Rock",
+        noteValue: 8,
+        steps: [['k', 'o'], ['o'], ['s', 'o'], ['o'], ['k', 'o'], ['k', 'o'], ['s', 'o'], ['o']]
+    },
+
+    // --- POP ---
+    pop_groove: {
+        name: "Pop Groove",
+        group: "Pop",
+        noteValue: 16,
+        steps: [
+            ['k', 'h'], [], ['h'], [], ['s', 'H'], [], ['h'], [], 
+            ['h'], [], ['k', 'h'], [], ['s', 'H'], [], ['h'], []
+        ]
+    },
+    disco: {
+        name: "Disco",
+        group: "Pop",
+        noteValue: 16,
+        steps: [
+            ['k', 'h'], [], ['o'], [], ['k', 's', 'h'], [], ['o'], [], 
+            ['k', 'h'], [], ['o'], [], ['k', 's', 'h'], [], ['o'], []
+        ]
+    },
+
+    // --- BLUES / JAZZ ---
+    blues_shuffle: {
+        name: "Blues Shuffle",
+        group: "Blues / Jazz",
+        noteValue: 12, // Triplets
+        steps: [
+            ['k', 'h'], [], ['h'],  // 1
+            ['s', 'h'], [], ['h'],  // 2
+            ['k', 'h'], [], ['h'],  // 3
+            ['s', 'h'], [], ['h']   // 4
+        ]
+    },
+    slow_blues: {
+        name: "Slow Blues (12/8)",
+        group: "Blues / Jazz",
+        noteValue: 12,
+        steps: [
+            ['k', 'H'], ['h'], ['h'], 
+            ['s', 'H'], ['h'], ['h'], 
+            ['k', 'H'], ['h'], ['h'], 
+            ['s', 'H'], ['h'], ['h']
+        ]
+    },
+    jazz_swing: {
+        name: "Jazz Swing",
+        group: "Blues / Jazz",
+        noteValue: 12, 
+        steps: [
+            ['k', 'o'], [], ['h'], 
+            ['o'], [], ['h'], 
+            ['o'], [], ['h'], 
+            ['o'], [], ['h']
+        ]
+    },
+
+    // --- R&B / SOUL ---
+    rnb_classic: {
+        name: "Classic R&B",
+        group: "R&B / Soul",
+        noteValue: 16,
+        steps: [
+            ['k', 'H'], [], ['h'], [], ['s', 'H'], [], ['h'], ['k'], 
+            ['h'], ['k'], ['h'], [], ['s', 'H'], [], ['h'], []
+        ]
+    },
+    motown: {
+        name: "Motown (Driving)",
+        group: "R&B / Soul",
+        noteValue: 8,
+        steps: [['k', 's', 'H'], ['h'], ['k', 's', 'H'], ['h'], ['k', 's', 'H'], ['h'], ['k', 's', 'H'], ['h']]
+    },
+    neo_soul: {
+        name: "Neo Soul",
+        group: "R&B / Soul",
+        noteValue: 16,
+        steps: [
+            ['k', 'h'], [], ['h'], ['g'], ['s', 'H'], [], ['h'], ['g'], 
+            ['h'], ['k'], ['h'], ['g'], ['s', 'H'], ['g'], ['k', 'h'], []
+        ]
+    },
+    funk_tight: {
+        name: "Funk (Tight)",
+        group: "R&B / Soul",
+        noteValue: 16,
+        steps: [
+            ['k', 'h'], [], ['h'], [], ['s', 'H'], [], ['k', 'h'], ['o'], 
+            [], ['h'], ['s', 'H'], [], ['k', 'h'], ['s'], ['h'], []
+        ]
+    },
+
+    // --- LATIN / WORLD ---
+    bossa_nova: {
+        name: "Bossa Nova",
+        group: "Latin / World",
+        noteValue: 16,
+        steps: [
+            ['k', 'h'], [], ['h'], ['g'], ['h'], [], ['h'], ['k', 'g'], 
+            ['h'], [], ['h'], ['g'], ['h'], ['k'], ['h'], []
+        ]
+    },
+    reggae_onedrop: {
+        name: "Reggae (One Drop)",
+        group: "Latin / World",
+        noteValue: 16,
+        steps: [
+            ['h'], [], ['h'], [], ['h'], [], ['h'], [], 
+            ['k', 's', 'H'], [], ['h'], [], ['h'], [], ['h'], []
+        ]
+    },
+
+    // --- ELECTRONIC / HIP HOP ---
+    hiphop_boombap: {
+        name: "Hip Hop (Boom Bap)",
+        group: "Electronic / HH",
+        noteValue: 16,
+        steps: [
+            ['k', 'H'], [], ['h'], [], ['s', 'H'], [], ['h'], ['k'], 
+            ['h'], ['k'], ['h'], [], ['s', 'H'], [], ['h'], []
+        ]
+    },
+    trap_basic: {
+        name: "Trap",
+        group: "Electronic / HH",
+        noteValue: 16,
+        steps: [
+            ['k', 'h'], ['h'], ['h'], ['h'], ['s', 'H'], ['h'], ['k', 'h'], ['h'], 
+            ['h'], ['h'], ['k', 'h'], ['h'], ['s', 'H'], ['h'], ['h'], ['h']
+        ]
+    },
+    house: {
+        name: "House (4x4)",
+        group: "Electronic / HH",
+        noteValue: 16,
+        steps: [
+            ['k', 'h'], [], ['o'], [], ['k', 's', 'h'], [], ['o'], [], 
+            ['k', 'h'], [], ['o'], [], ['k', 's', 'h'], [], ['o'], []
+        ]
+    },
+    
+    // --- COUNTRY ---
+    country_train: {
+        name: "Country Train",
+        group: "Country",
+        noteValue: 16,
+        steps: [
+            ['k', 's', 'h'], [], ['s', 'h'], [], ['k', 's', 'H'], [], ['s', 'h'], [], 
+            ['k', 's', 'h'], [], ['s', 'h'], [], ['k', 's', 'H'], [], ['s', 'h'], []
+        ]
+    }
+};
+
+class Metronome {
+    constructor(updateUI) {
+        this.audioCtx = null;
+        this.synth = null;
+        this.isPlaying = false;
+        this.lookahead = 25.0; // ms
+        this.scheduleAheadTime = 0.1; // s
+        this.nextNoteTime = 0.0; 
+        this.bpm = 100;
+        this.timerID = null;
+        this.currentStep = 0;
+        this.rhythmType = 'metronome';
+        this.updateUI = updateUI; // callback for visuals
+    }
+
+    init() {
+        if (!this.audioCtx) {
+            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            this.synth = new DrumSynth(this.audioCtx);
+        }
+    }
+
+    nextNote() {
+        const rhythm = RHYTHMS[this.rhythmType];
+        // Calculate time per step based on note value
+        // 60 / bpm = seconds per quarter note
+        // if noteValue is 8, we need half that time. (4/8 = 0.5)
+        const secondsPerBeat = 60.0 / this.bpm;
+        const multiplier = 4 / rhythm.noteValue; 
+        this.nextNoteTime += secondsPerBeat * multiplier;
+        
+        this.currentStep++;
+        if (this.currentStep >= rhythm.steps.length) {
+            this.currentStep = 0;
+        }
+    }
+
+    scheduleNote(time) {
+        const rhythm = RHYTHMS[this.rhythmType];
+        const step = rhythm.steps[this.currentStep];
+
+        // Play sounds
+        if (step && step.length > 0) {
+            step.forEach(instrCode => {
+                // Map codes to Synth calls with volume
+                switch(instrCode) {
+                    case 'c+': this.synth.playClick(time, true); break;
+                    case 'c': this.synth.playClick(time, false); break;
+                    
+                    case 'k': this.synth.playKick(time, 1.0); break; // Standard Kick
+                    
+                    case 's': this.synth.playSnare(time, 0.9); break; // Standard Snare
+                    case 'g': this.synth.playSnare(time, 0.3); break; // Ghost Snare
+                    
+                    case 'h': this.synth.playHiHat(time, false, 0.4); break; // Soft Hat
+                    case 'H': this.synth.playHiHat(time, false, 0.9); break; // Accent Hat
+                    case 'o': this.synth.playHiHat(time, true, 0.7); break;  // Open Hat
+                    case 'O': this.synth.playHiHat(time, true, 1.0); break;  // Loud Open Hat
+                }
+            });
+        }
+
+        // Visual callback
+        let shouldFlash = false;
+        if (rhythm.noteValue === 4) shouldFlash = true;
+        if (rhythm.noteValue === 8 && this.currentStep % 2 === 0) shouldFlash = true;
+        if (rhythm.noteValue === 16 && this.currentStep % 4 === 0) shouldFlash = true;
+        if (rhythm.noteValue === 12 && this.currentStep % 3 === 0) shouldFlash = true;
+
+        if (shouldFlash) {
+            setTimeout(() => {
+                this.updateUI();
+            }, (time - this.audioCtx.currentTime) * 1000);
+        }
+    }
+
+    scheduler() {
+        while (this.nextNoteTime < this.audioCtx.currentTime + this.scheduleAheadTime) {
+            this.scheduleNote(this.nextNoteTime);
+            this.nextNote();
+        }
+        this.timerID = window.setTimeout(this.scheduler.bind(this), this.lookahead);
+    }
+
+    start() {
+        if (this.isPlaying) return;
+        this.init();
+        if (this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+        }
+        this.isPlaying = true;
+        this.currentStep = 0;
+        this.nextNoteTime = this.audioCtx.currentTime + 0.05;
+        this.scheduler();
+    }
+
+    stop() {
+        this.isPlaying = false;
+        window.clearTimeout(this.timerID);
+    }
+
+    setBpm(bpm) {
+        this.bpm = bpm;
+    }
+    
+    setRhythm(type) {
+        this.rhythmType = type;
+        this.currentStep = 0;
+    }
+}
+
+/**
+ * MUSIC THEORY ENGINE
+ */
+const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const DISPLAY_FLATS = {
+    'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'
+};
+
+// Expanded Scales & Modes Definition
+const SCALES = {
+    // Modes
+    ionian: { 
+        name: 'Major (Ionian)', 
+        group: 'Modes',
+        intervals: [0, 2, 4, 5, 7, 9, 11], 
+        info: "The Ionian mode is the standard Major scale. It is the foundation of Western music theory, characterized by its happy, bright, and resolved sound. It is the most common scale used in Pop, Rock, Country, and Classical music.",
+        chords: [
+            { idx: 0, type: 'Maj', roman: 'I' },
+            { idx: 2, type: 'min', roman: 'ii' },
+            { idx: 4, type: 'min', roman: 'iii' },
+            { idx: 5, type: 'Maj', roman: 'IV' },
+            { idx: 7, type: 'Maj', roman: 'V' },
+            { idx: 9, type: 'min', roman: 'vi' },
+            { idx: 11, type: 'dim', roman: 'vii°' }
+        ]
+    },
+    dorian: { 
+        name: 'Dorian', 
+        group: 'Modes',
+        intervals: [0, 2, 3, 5, 7, 9, 10],
+        info: "Dorian is a minor scale with a 'bright' twist due to its major 6th interval. It has a soulful, jazzy, and sometimes medieval sound. Famous for being used in 'So What' by Miles Davis and Santana's 'Oye Como Va'.",
+        chords: [
+            { idx: 0, type: 'min', roman: 'i' },
+            { idx: 2, type: 'min', roman: 'ii' },
+            { idx: 3, type: 'Maj', roman: 'III' },
+            { idx: 5, type: 'Maj', roman: 'IV' },
+            { idx: 7, type: 'min', roman: 'v' },
+            { idx: 9, type: 'dim', roman: 'vi°' },
+            { idx: 10, type: 'Maj', roman: 'VII' }
+        ]
+    },
+    phrygian: { 
+        name: 'Phrygian', 
+        group: 'Modes',
+        intervals: [0, 1, 3, 5, 7, 8, 10], 
+        info: "Phrygian is a minor scale defined by its flattened 2nd note, giving it a distinctive Spanish, flamenco, or Middle Eastern flavor. It is heavily used in Heavy Metal and Hip Hop to create a dark, aggressive tension.",
+        chords: [
+            { idx: 0, type: 'min', roman: 'i' },
+            { idx: 1, type: 'Maj', roman: 'II' },
+            { idx: 3, type: 'Maj', roman: 'III' },
+            { idx: 5, type: 'min', roman: 'iv' },
+            { idx: 7, type: 'dim', roman: 'v°' },
+            { idx: 8, type: 'Maj', roman: 'VI' },
+            { idx: 10, type: 'min', roman: 'vii' }
+        ]
+    },
+    lydian: { 
+        name: 'Lydian', 
+        group: 'Modes',
+        intervals: [0, 2, 4, 6, 7, 9, 11], 
+        info: "Lydian is a major scale with a raised 4th (sharp 4). This single note creates a dreamy, floating, and ethereal quality. It is a favorite of film composers (John Williams, Thomas Newman) and guitar virtuosos like Steve Vai.",
+        chords: [
+            { idx: 0, type: 'Maj', roman: 'I' },
+            { idx: 2, type: 'Maj', roman: 'II' },
+            { idx: 4, type: 'min', roman: 'iii' },
+            { idx: 6, type: 'dim', roman: '#iv°' },
+            { idx: 7, type: 'Maj', roman: 'V' },
+            { idx: 9, type: 'min', roman: 'vi' },
+            { idx: 11, type: 'min', roman: 'vii' }
+        ]
+    },
+    mixolydian: { 
+        name: 'Mixolydian', 
+        group: 'Modes',
+        intervals: [0, 2, 4, 5, 7, 9, 10], 
+        info: "Mixolydian is the 'Rock and Roll' scale. It's a major scale with a flattened 7th, removing the tension of the leading tone. This makes it sound bluesy and laid-back. Essential for Classic Rock (AC/DC, Guns N' Roses) and Blues.",
+        chords: [
+            { idx: 0, type: 'Maj', roman: 'I' },
+            { idx: 2, type: 'min', roman: 'ii' },
+            { idx: 4, type: 'dim', roman: 'iii°' },
+            { idx: 5, type: 'Maj', roman: 'IV' },
+            { idx: 7, type: 'min', roman: 'v' },
+            { idx: 9, type: 'min', roman: 'vi' },
+            { idx: 10, type: 'Maj', roman: 'bVII' }
+        ]
+    },
+    aeolian: { 
+        name: 'Minor (Aeolian)', 
+        group: 'Modes',
+        intervals: [0, 2, 3, 5, 7, 8, 10], 
+        info: "Aeolian is the Natural Minor scale. It is the primary scale for expressing sadness, melancholy, or seriousness. It is ubiquitous across all genres, from emotional Ballads and Pop hits to heavy Metal riffs.",
+        chords: [
+            { idx: 0, type: 'min', roman: 'i' },
+            { idx: 2, type: 'dim', roman: 'ii°' },
+            { idx: 3, type: 'Maj', roman: 'III' },
+            { idx: 5, type: 'min', roman: 'iv' },
+            { idx: 7, type: 'min', roman: 'v' },
+            { idx: 8, type: 'Maj', roman: 'VI' },
+            { idx: 10, type: 'Maj', roman: 'VII' }
+        ]
+    },
+    locrian: { 
+        name: 'Locrian', 
+        group: 'Modes',
+        intervals: [0, 1, 3, 5, 6, 8, 10], 
+        info: "Locrian is widely considered the most unstable mode due to its flattened 2nd and flattened 5th. It sounds unresolved and dissonant. It is rarely used as a key center but appears occasionally in Jazz and experimental Metal.",
+        chords: [
+            { idx: 0, type: 'dim', roman: 'i°' },
+            { idx: 1, type: 'Maj', roman: 'bII' },
+            { idx: 3, type: 'min', roman: 'biii' },
+            { idx: 5, type: 'min', roman: 'iv' },
+            { idx: 6, type: 'Maj', roman: 'bV' },
+            { idx: 8, type: 'Maj', roman: 'bVI' },
+            { idx: 10, type: 'min', roman: 'bvii' }
+        ]
+    },
+    
+    // Pentatonics & Blues
+    major_pent: { 
+        name: 'Major Pentatonic', 
+        group: 'Pentatonic / Blues',
+        intervals: [0, 2, 4, 7, 9], 
+        info: "The Major Pentatonic removes the 4th and 7th notes from the standard Major scale. This creates an open, consonant sound that is hard to play a 'wrong' note in. Staple of Country, Folk, and uplifting Rock solos.",
+        chords: [] 
+    },
+    minor_pent: { 
+        name: 'Minor Pentatonic', 
+        group: 'Pentatonic / Blues',
+        intervals: [0, 3, 5, 7, 10], 
+        info: "The Minor Pentatonic is arguably the most important scale for guitarists. It removes the 2nd and 6th from the minor scale. It is the absolute backbone of Blues, Rock, and guitar solos worldwide.",
+        chords: [] 
+    },
+    blues: { 
+        name: 'Blues Scale', 
+        group: 'Pentatonic / Blues',
+        intervals: [0, 3, 5, 6, 7, 10], 
+        info: "The Blues scale adds a 'Blue Note' (flattened 5th) to the Minor Pentatonic. This single chromatic passing tone adds the grit, soul, and tension characteristic of Blues music and hard rock riffs.",
+        chords: [] 
+    },
+
+    // Others
+    harmonic_minor: { 
+        name: 'Harmonic Minor', 
+        group: 'Other',
+        intervals: [0, 2, 3, 5, 7, 8, 11], 
+        info: "Harmonic Minor raises the 7th note of the Natural Minor scale to create a leading tone. This gives it a distinct exotic, Classical, or Neo-classical sound. Essential for Yngwie Malmsteen-style shredding and Latin jazz.",
+        chords: [
+            { idx: 0, type: 'min', roman: 'i' },
+            { idx: 2, type: 'dim', roman: 'ii°' },
+            { idx: 3, type: 'aug', roman: 'III+' },
+            { idx: 5, type: 'min', roman: 'iv' },
+            { idx: 7, type: 'Maj', roman: 'V' },
+            { idx: 8, type: 'Maj', roman: 'VI' },
+            { idx: 11, type: 'dim', roman: 'vii°' }
+        ]
+    },
+    altered: { 
+        name: 'Altered Scale', 
+        group: 'Other',
+        intervals: [0, 1, 3, 4, 6, 8, 10], 
+        info: "The Altered scale (Super Locrian) is derived from the Melodic Minor. It contains every possible altered extension (b9, #9, b5, #5). It is used primarily in Jazz to play over altered dominant chords creating maximum tension before resolving.",
+        chords: [] 
+    }
+};
+
+const CHORD_FORMULAS = {
+    'Maj': [0, 4, 7],
+    'min': [0, 3, 7],
+    'dim': [0, 3, 6],
+    'aug': [0, 4, 8],
+    '7': [0, 4, 7, 10],
+    'Maj7': [0, 4, 7, 11],
+    'min7': [0, 3, 7, 10]
+};
+
+const TUNINGS = {
+    standard: [4, 11, 7, 2, 9, 4], // E B G D A E (High to Low)
+    drop_d: [4, 11, 7, 2, 9, 2], 
+    open_g: [2, 11, 7, 2, 7, 2], 
+    open_d: [2, 9, 6, 2, 9, 2], 
+    dadgad: [2, 9, 7, 2, 9, 2]
+};
+
+// State
+let state = {
+    bpm: 100,
+    keyRoot: 0, // C
+    scaleKey: 'ionian', // Key in SCALES object
+    tuning: [...TUNINGS.standard],
+    activeChord: null // null or {root: index, type: string}
+};
+
+/**
+ * UTILS
+ */
+const getNoteName = (index, useFlats = false) => {
+    const normIndex = (index % 12 + 12) % 12;
+    const note = NOTES[normIndex];
+    if (useFlats && DISPLAY_FLATS[note]) return DISPLAY_FLATS[note];
+    return note;
+};
+
+const shouldUseFlats = (rootIndex) => {
+    const flatKeys = [5, 10, 3, 8, 1, 6]; 
+    return flatKeys.includes(rootIndex);
+};
+
+const getScaleNotes = (root, scaleKey) => {
+    const formula = SCALES[scaleKey].intervals;
+    return formula.map(interval => (root + interval) % 12);
+};
+
+const getChordNotes = (root, chordType) => {
+    const formula = CHORD_FORMULAS[chordType];
+    return formula.map(interval => (root + interval) % 12);
+};
+
+/**
+ * UI RENDERING
+ */
+const elements = {
+    bpmDisplay: document.getElementById('bpmDisplay'),
+    bpmSlider: document.getElementById('bpmSlider'),
+    beatIndicator: document.getElementById('beatIndicator'),
+    playBtn: document.getElementById('playBtn'),
+    playIcon: document.getElementById('playIcon'),
+    decreaseBpm: document.getElementById('decreaseBpm'),
+    increaseBpm: document.getElementById('increaseBpm'),
+    rhythmSelect: document.getElementById('rhythmSelect'),
+    keySelect: document.getElementById('keySelect'),
+    scaleSelect: document.getElementById('scaleSelect'),
+    tuningSelect: document.getElementById('tuningSelect'),
+    fretboardContainer: document.getElementById('fretboardContainer'),
+    chordsContainer: document.getElementById('chordsContainer'),
+    viewModeBadge: document.getElementById('viewModeBadge'),
+    resetViewBtn: document.getElementById('resetViewBtn'),
+    settingsBtn: document.getElementById('settingsBtn'),
+    tuningModal: document.getElementById('tuningModal'),
+    closeTuningModal: document.getElementById('closeTuningModal'),
+    applyCustomTuning: document.getElementById('applyCustomTuning'),
+    stringTuners: document.getElementById('stringTuners'),
+    // Info elements
+    infoToggleBtn: document.getElementById('infoToggleBtn'),
+    infoContent: document.getElementById('infoContent'),
+    infoChevron: document.getElementById('infoChevron'),
+    scaleDescription: document.getElementById('scaleDescription')
+};
+
+// Initialize Metronome
+const metronome = new Metronome(() => {
+    elements.beatIndicator.classList.remove('pulse-active');
+    void elements.beatIndicator.offsetWidth; // trigger reflow
+    elements.beatIndicator.classList.add('pulse-active');
+    elements.beatIndicator.style.backgroundColor = '#38bdf8'; // Sky 400
+    setTimeout(() => elements.beatIndicator.style.backgroundColor = '#475569', 100);
+});
+
+// Metronome UI Handlers
+function togglePlay() {
+    if (metronome.isPlaying) {
+        metronome.stop();
+        elements.playBtn.classList.remove('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-900/50');
+        elements.playBtn.classList.add('bg-sky-500', 'hover:bg-sky-400', 'shadow-sky-900/50');
+        elements.playIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+    } else {
+        metronome.start();
+        elements.playBtn.classList.remove('bg-sky-500', 'hover:bg-sky-400', 'shadow-sky-900/50');
+        elements.playBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-900/50');
+        elements.playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16" fill="currentColor" rx="1" /><rect x="14" y="4" width="4" height="16" fill="currentColor" rx="1" />';
+    }
+}
+
+function updateBpm(val) {
+    state.bpm = parseInt(val);
+    if(state.bpm > 240) state.bpm = 240;
+    if(state.bpm < 30) state.bpm = 30;
+    
+    elements.bpmSlider.value = state.bpm;
+    elements.bpmDisplay.innerText = state.bpm;
+    metronome.setBpm(state.bpm);
+}
+
+// Logic Rendering
+function initUI() {
+    // Populate Key Select
+    NOTES.forEach((note, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.innerText = note;
+        elements.keySelect.appendChild(opt);
+    });
+
+    // Populate Scale Select
+    const scaleGroups = {};
+    Object.keys(SCALES).forEach(key => {
+        const scale = SCALES[key];
+        if (!scaleGroups[scale.group]) scaleGroups[scale.group] = [];
+        scaleGroups[scale.group].push({ key, name: scale.name });
+    });
+
+    Object.keys(scaleGroups).forEach(groupName => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = groupName;
+        scaleGroups[groupName].forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.key;
+            opt.innerText = s.name;
+            optgroup.appendChild(opt);
+        });
+        elements.scaleSelect.appendChild(optgroup);
+    });
+    
+    // NEW: Populate Rhythm Select
+    elements.rhythmSelect.innerHTML = '';
+    const rhythmGroups = {};
+    Object.keys(RHYTHMS).forEach(key => {
+        const r = RHYTHMS[key];
+        if (!rhythmGroups[r.group]) rhythmGroups[r.group] = [];
+        rhythmGroups[r.group].push({ key, name: r.name });
+    });
+
+    Object.keys(rhythmGroups).forEach(groupName => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = groupName;
+        rhythmGroups[groupName].forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.key;
+            opt.innerText = r.name;
+            optgroup.appendChild(opt);
+        });
+        elements.rhythmSelect.appendChild(optgroup);
+    });
+
+    // Set default selections
+    elements.scaleSelect.value = 'ionian';
+    elements.rhythmSelect.value = 'metronome';
+
+    // Populate Tuners
+    elements.stringTuners.innerHTML = '';
+    for(let i=0; i<6; i++) {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between bg-slate-700 p-2 rounded';
+        const label = document.createElement('span');
+        label.className = 'text-slate-300 font-bold';
+        label.innerText = `String ${i+1} (Top)`;
+        if (i===0) label.innerText = `String 1 (High)`;
+        if (i===5) label.innerText = `String 6 (Low)`;
+        
+        const select = document.createElement('select');
+        select.className = 'bg-slate-800 text-white p-1 rounded w-20 text-center tuner-select';
+        select.dataset.stringIndex = 5 - i; 
+        
+        NOTES.forEach((note, nIdx) => {
+            const opt = document.createElement('option');
+            opt.value = nIdx;
+            opt.innerText = note;
+            if(nIdx === state.tuning[5-i]) opt.selected = true;
+            select.appendChild(opt);
+        });
+        
+        row.appendChild(label);
+        row.appendChild(select);
+        elements.stringTuners.appendChild(row);
+    }
+
+    renderAll();
+}
+
+function renderAll() {
+    renderChords();
+    renderFretboard();
+    
+    // Update Info Description
+    const scaleData = SCALES[state.scaleKey];
+    elements.scaleDescription.innerText = scaleData.info || "No information available for this scale.";
+}
+
+function renderChords() {
+    elements.chordsContainer.innerHTML = '';
+    
+    const currentScale = SCALES[state.scaleKey];
+    const useFlats = shouldUseFlats(state.keyRoot);
+
+    // If scale has no defined diatonic chords (like Pentatonic)
+    if (!currentScale.chords || currentScale.chords.length === 0) {
+        elements.chordsContainer.innerHTML = `
+            <div class="col-span-full py-4 text-center">
+                <p class="text-xs text-slate-500 italic">Diatonic triads are not standard for this scale.</p>
+                <p class="text-[10px] text-slate-600 mt-1">Try switching to a Mode to see chord shapes.</p>
+            </div>
+        `;
+        return;
+    }
+
+    currentScale.chords.forEach((chordInfo) => {
+        const rootNote = (state.keyRoot + chordInfo.idx) % 12;
+        const quality = chordInfo.type;
+        const card = document.createElement('button');
+        const isActive = state.activeChord && state.activeChord.root === rootNote;
+        
+        card.className = `chord-card flex flex-col items-center justify-center p-2 rounded-lg border border-slate-700 bg-slate-800 transition active:scale-95 ${isActive ? 'active ring-2 ring-sky-500' : 'hover:border-slate-500'}`;
+        
+        const roman = document.createElement('span');
+        roman.className = 'text-[10px] font-bold text-slate-500 uppercase mb-0.5';
+        roman.innerText = chordInfo.roman;
+
+        const name = document.createElement('span');
+        name.className = 'text-sm font-bold text-slate-200';
+        name.innerText = getNoteName(rootNote, useFlats) + (quality === 'min' ? 'm' : (quality === 'dim' ? '°' : (quality === 'aug' ? '+' : '')));
+
+        card.appendChild(roman);
+        card.appendChild(name);
+
+        card.onclick = () => {
+            if (isActive) {
+                state.activeChord = null;
+            } else {
+                state.activeChord = { root: rootNote, type: quality };
+            }
+            renderAll();
+        };
+
+        elements.chordsContainer.appendChild(card);
+    });
+
+    if (state.activeChord) {
+        elements.viewModeBadge.innerText = `Chord: ${getNoteName(state.activeChord.root, useFlats)}${state.activeChord.type === 'min' ? 'm' : ''}`;
+        elements.viewModeBadge.className = 'text-xs px-2 py-0.5 rounded bg-emerald-900 text-emerald-200';
+        elements.resetViewBtn.classList.remove('hidden');
+    } else {
+        elements.viewModeBadge.innerText = 'Scale View';
+        elements.viewModeBadge.className = 'text-[10px] px-2 py-0.5 rounded bg-sky-900 text-sky-200';
+        elements.resetViewBtn.classList.add('hidden');
+    }
+}
+
+function renderFretboard() {
+    elements.fretboardContainer.innerHTML = '';
+    const numFrets = 15;
+    const useFlats = shouldUseFlats(state.keyRoot);
+    
+    let highlightedNotes = [];
+    let rootNote = -1;
+    let chordNotes = [];
+
+    if (state.activeChord) {
+        highlightedNotes = getChordNotes(state.activeChord.root, state.activeChord.type);
+        rootNote = state.activeChord.root;
+        chordNotes = highlightedNotes;
+    } else {
+        highlightedNotes = getScaleNotes(state.keyRoot, state.scaleKey);
+        rootNote = state.keyRoot;
+    }
+
+    // Render Nut
+    const nut = document.createElement('div');
+    nut.className = 'absolute left-0 top-0 bottom-0 w-2 bg-[#e0d6cc] z-20 shadow-md border-r border-slate-400';
+    elements.fretboardContainer.appendChild(nut);
+
+    // Render Frets
+    const FRET_WIDTH = 29;
+
+    for (let i = 1; i <= numFrets; i++) {
+        const fret = document.createElement('div');
+        const pos = i * FRET_WIDTH; 
+        fret.className = 'fret-wire';
+        fret.style.left = `${pos}px`;
+        elements.fretboardContainer.appendChild(fret);
+
+        if ([3, 5, 7, 9].includes(i)) {
+            const marker = document.createElement('div');
+            marker.className = 'fret-marker';
+            marker.style.left = `${pos - (FRET_WIDTH/2)}px`;
+            elements.fretboardContainer.appendChild(marker);
+        }
+        if (i === 12) {
+            const m1 = document.createElement('div');
+            m1.className = 'fret-marker double-marker-1';
+            m1.style.left = `${pos - (FRET_WIDTH/2)}px`;
+            const m2 = document.createElement('div');
+            m2.className = 'fret-marker double-marker-2';
+            m2.style.left = `${pos - (FRET_WIDTH/2)}px`;
+            elements.fretboardContainer.appendChild(m1);
+            elements.fretboardContainer.appendChild(m2);
+        }
+        
+        const num = document.createElement('div');
+        num.className = 'absolute bottom-0 text-[8px] text-slate-500 font-mono';
+        num.style.left = `${pos - (FRET_WIDTH/2)}px`;
+        num.innerText = i;
+        elements.fretboardContainer.appendChild(num);
+    }
+
+    // Render Strings
+    for (let s = 0; s < 6; s++) {
+        const stringRoot = state.tuning[s];
+        
+        const stringLine = document.createElement('div');
+        stringLine.className = 'string-line';
+        const topPos = 12 + (s * 15.2);
+        stringLine.style.top = `${topPos}%`;
+        stringLine.style.height = `${1 + (s * 0.4)}px`;
+        elements.fretboardContainer.appendChild(stringLine);
+
+        // Tuning Label (Always Visible at Start)
+        const tuningLabel = document.createElement('div');
+        tuningLabel.className = 'tuning-label absolute';
+        tuningLabel.style.left = '-26px'; // Position outside the nut
+        tuningLabel.style.top = `${topPos}%`;
+        tuningLabel.style.marginTop = '-11px';
+        tuningLabel.innerText = getNoteName(stringRoot, useFlats);
+        elements.fretboardContainer.appendChild(tuningLabel);
+
+        // Render Notes (including Fret 0 if relevant)
+        for (let f = 0; f <= numFrets; f++) {
+            const noteIndex = (stringRoot + f) % 12;
+            
+            // Check if note is in scale/chord
+            if (highlightedNotes.includes(noteIndex)) {
+                
+                const noteDot = document.createElement('div');
+                noteDot.className = 'note-dot absolute shadow-sm';
+                noteDot.innerText = getNoteName(noteIndex, useFlats);
+                
+                let leftPos;
+                if (f === 0) {
+                   leftPos = -26; // Match tuning label position
+                   noteDot.style.zIndex = 15;
+                } else {
+                   leftPos = (f * FRET_WIDTH) - (FRET_WIDTH/2);
+                }
+
+                noteDot.style.left = `${leftPos}px`;
+                noteDot.style.top = `${topPos}%`;
+                noteDot.style.marginTop = '-11px';
+
+                // Coloring
+                if (state.activeChord) {
+                    if (noteIndex === chordNotes[0]) {
+                        noteDot.style.backgroundColor = '#ef4444'; // Red
+                        noteDot.style.color = '#fff';
+                        noteDot.style.zIndex = 20;
+                    } else if (noteIndex === chordNotes[1]) {
+                        noteDot.style.backgroundColor = '#f59e0b'; // Amber
+                        noteDot.style.color = '#000';
+                    } else if (noteIndex === chordNotes[2]) {
+                        noteDot.style.backgroundColor = '#3b82f6'; // Blue
+                        noteDot.style.color = '#fff';
+                    } else {
+                        noteDot.style.backgroundColor = '#a8a29e';
+                        noteDot.style.color = '#000';
+                    }
+                } else {
+                    if (noteIndex === rootNote) {
+                        noteDot.style.backgroundColor = '#38bdf8'; // Sky
+                        noteDot.style.color = '#000';
+                        noteDot.style.zIndex = 20;
+                        noteDot.style.border = '2px solid white';
+                    } else {
+                        noteDot.style.backgroundColor = '#334155'; // Slate
+                        noteDot.style.color = '#94a3b8';
+                        noteDot.style.border = '1px solid #475569';
+                    }
+                }
+                elements.fretboardContainer.appendChild(noteDot);
+            }
+        }
+    }
+}
+
+/**
+ * EVENTS
+ */
+elements.playBtn.addEventListener('click', togglePlay);
+
+elements.bpmSlider.addEventListener('input', (e) => updateBpm(e.target.value));
+elements.decreaseBpm.addEventListener('click', () => updateBpm(state.bpm - 1));
+elements.increaseBpm.addEventListener('click', () => updateBpm(state.bpm + 1));
+elements.rhythmSelect.addEventListener('change', (e) => {
+    metronome.setRhythm(e.target.value);
+});
+
+elements.keySelect.addEventListener('change', (e) => {
+    state.keyRoot = parseInt(e.target.value);
+    state.activeChord = null;
+    renderAll();
+});
+
+elements.scaleSelect.addEventListener('change', (e) => {
+    state.scaleKey = e.target.value;
+    state.activeChord = null;
+    renderAll();
+});
+
+elements.tuningSelect.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if(TUNINGS[val]) {
+        state.tuning = [...TUNINGS[val]];
+    }
+    renderFretboard();
+});
+
+elements.resetViewBtn.addEventListener('click', () => {
+    state.activeChord = null;
+    renderAll();
+});
+
+elements.settingsBtn.addEventListener('click', () => {
+    const selects = elements.stringTuners.querySelectorAll('select');
+    selects.forEach(sel => {
+        const sIdx = parseInt(sel.dataset.stringIndex);
+        sel.value = state.tuning[sIdx];
+    });
+    elements.tuningModal.classList.remove('hidden');
+});
+
+elements.closeTuningModal.addEventListener('click', () => {
+    elements.tuningModal.classList.add('hidden');
+});
+
+elements.applyCustomTuning.addEventListener('click', () => {
+    const selects = elements.stringTuners.querySelectorAll('select');
+    const newTuning = [...state.tuning];
+    selects.forEach(sel => {
+        const sIdx = parseInt(sel.dataset.stringIndex);
+        newTuning[sIdx] = parseInt(sel.value);
+    });
+    state.tuning = newTuning;
+    renderFretboard();
+    elements.tuningModal.classList.add('hidden');
+});
+
+// Info Accordion Logic
+elements.infoToggleBtn.addEventListener('click', () => {
+    elements.infoContent.classList.toggle('hidden');
+    elements.infoChevron.classList.toggle('rotate-180');
+});
+
+initUI();
+updateBpm(100);
+
+</script>
+</body>
+</html>
