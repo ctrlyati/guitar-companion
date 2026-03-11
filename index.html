@@ -26,15 +26,50 @@
             background: #475569;
             border-radius: 4px;
         }
+        /* Fretboard Responsive Scroll */
+        .fretboard-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .fretboard-wrapper::-webkit-scrollbar {
+            height: 4px;
+        }
+        .fretboard-wrapper::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .fretboard-wrapper::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        .fretboard-inner {
+            min-width: 700px;
+        }
+        .scroll-hint {
+            display: block;
+        }
+        @media (min-width: 768px) {
+            .fretboard-wrapper {
+                overflow-x: hidden;
+            }
+            .fretboard-inner {
+                min-width: 0;
+                width: 100%;
+            }
+            .scroll-hint {
+                display: none;
+            }
+        }
 
         /* Range Input Styling */
         input[type=range] {
             -webkit-appearance: none;
+            appearance: none;
             width: 100%;
             background: transparent;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
+            appearance: none;
             height: 16px;
             width: 16px;
             border-radius: 50%;
@@ -155,6 +190,70 @@
             border-color: #f59e0b !important;
             color: #f59e0b !important;
             background-color: rgba(245, 158, 11, 0.1) !important;
+        }
+
+        /* Chord Recognizer Fretboard */
+        .recognizer-fret {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            height: 100%;
+            border-right: 2px solid #64748b;
+            position: relative;
+            cursor: pointer;
+        }
+        .recognizer-fret:hover {
+            background: rgba(56, 189, 248, 0.1);
+        }
+        .recognizer-string-slot {
+            width: 100%;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .recognizer-string-slot::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #475569;
+        }
+        .recognizer-note {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #38bdf8;
+            color: #000;
+            font-size: 9px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+        .recognizer-note.muted {
+            background: #ef4444;
+            color: #fff;
+        }
+        .recognizer-note.muted::after {
+            content: 'X';
+        }
+        .chord-result-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 8px 12px;
+            text-align: center;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+        .chord-result-card.best {
+            border-color: #38bdf8;
+            background: #0c4a6e;
         }
     </style>
 </head>
@@ -320,23 +419,33 @@
                     <span id="viewModeBadge" class="text-[10px] px-2 py-0.5 rounded bg-sky-900 text-sky-200">Scale View</span>
                 </div>
                 
-                <!-- Scroll Container -->
-                <div class="fretboard-scroll overflow-x-auto pb-2 relative">
-                    <!-- Added padding-left to container to make room for tuning labels -->
-                    <div id="fretboardContainer" class="relative min-w-[500px] h-[150px] bg-[#221e1b] ml-6 mr-2 shadow-inner rounded-r-md border-r-4 border-slate-500">
-                        <!-- Generated via JS -->
+                <!-- Fretboard Scroll Wrapper -->
+                <div class="fretboard-wrapper pb-2 relative px-2">
+                    <div class="fretboard-inner pl-6">
+                        <!-- Fretboard with tuning labels in padding -->
+                        <div id="fretboardContainer" class="relative w-full h-[150px] bg-[#221e1b] shadow-inner rounded-r-md border-r-4 border-slate-500">
+                            <!-- Generated via JS -->
+                        </div>
                     </div>
                 </div>
                 
                 <div class="px-3 py-1 text-[10px] text-slate-500 flex justify-between h-6 items-center">
-                    <span>&larr; Scroll &rarr;</span>
+                    <span class="scroll-hint">&larr; Scroll &rarr;</span>
                     <button id="resetViewBtn" class="text-sky-400 font-semibold hidden hover:text-sky-300">Reset to Scale</button>
                 </div>
             </div>
 
             <!-- Chords in Key -->
             <div>
-                <h3 class="text-xs font-bold text-slate-400 mb-2 px-1 uppercase tracking-wide">Chords in Key</h3>
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide">Chords in Key</h3>
+                    <button id="openChordRecognizerBtn" class="text-[10px] px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-semibold flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Chord Finder
+                    </button>
+                </div>
                 <div id="chordsContainer" class="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-7">
                     <!-- Populated by JS -->
                 </div>
@@ -374,6 +483,62 @@
             <div class="flex gap-3">
                 <button id="closeTuningModal" class="flex-1 py-3 bg-slate-700 rounded-lg font-semibold hover:bg-slate-600">Close</button>
                 <button id="applyCustomTuning" class="flex-1 py-3 bg-sky-500 text-white rounded-lg font-semibold hover:bg-sky-400">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chord Recognizer Modal -->
+    <div id="chordRecognizerModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-2xl w-full max-w-lg p-4 shadow-2xl border border-slate-700 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-bold">Chord Finder</h3>
+                <button id="closeChordRecognizerBtn" class="text-slate-400 hover:text-white p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <p class="text-xs text-slate-400 mb-3">Tap a fret to place a note. Tap again to mute. Tap muted to clear.</p>
+            
+            <!-- Starting Fret Picker -->
+            <div class="flex items-center gap-3 mb-3">
+                <label class="text-xs text-slate-400">Starting Fret:</label>
+                <select id="recognizerStartFret" class="bg-slate-700 text-white text-sm px-2 py-1 rounded border border-slate-600 focus:outline-none focus:border-sky-500">
+                    <option value="0">0 (Open)</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                </select>
+                <span class="text-xs text-slate-500">Shows 5 frets</span>
+            </div>
+            
+            <!-- Interactive Fretboard -->
+            <div class="bg-[#221e1b] rounded-lg p-2 mb-3 overflow-x-auto">
+                <div id="recognizerFretboard" class="flex h-[160px] min-w-[400px]">
+                    <!-- Generated via JS -->
+                </div>
+            </div>
+            
+            <!-- Clear Button -->
+            <div class="flex justify-end mb-3">
+                <button id="clearRecognizerBtn" class="text-xs px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded font-semibold">Clear All</button>
+            </div>
+            
+            <!-- Results -->
+            <div class="flex-1 min-h-0">
+                <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Possible Chords</h4>
+                <div id="chordRecognizerResults" class="flex gap-2 overflow-x-auto pb-2">
+                    <p class="text-sm text-slate-500 italic">Place notes on the fretboard...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -1186,7 +1351,15 @@ const elements = {
     loopBarsSelect: document.getElementById('loopBarsSelect'),
     looperBeatIndicators: document.getElementById('looperBeatIndicators'),
     looperTracks: document.getElementById('looperTracks'),
-    addTrackBtn: document.getElementById('addTrackBtn')
+    addTrackBtn: document.getElementById('addTrackBtn'),
+    // Chord Recognizer elements
+    openChordRecognizerBtn: document.getElementById('openChordRecognizerBtn'),
+    chordRecognizerModal: document.getElementById('chordRecognizerModal'),
+    closeChordRecognizerBtn: document.getElementById('closeChordRecognizerBtn'),
+    recognizerFretboard: document.getElementById('recognizerFretboard'),
+    clearRecognizerBtn: document.getElementById('clearRecognizerBtn'),
+    chordRecognizerResults: document.getElementById('chordRecognizerResults'),
+    recognizerStartFret: document.getElementById('recognizerStartFret')
 };
 
 // Initialize Metronome
@@ -1416,7 +1589,7 @@ function renderChords() {
 
 function renderFretboard() {
     elements.fretboardContainer.innerHTML = '';
-    const numFrets = 15;
+    const numFrets = 24;
     const useFlats = shouldUseFlats(state.keyRoot);
     
     let highlightedNotes = [];
@@ -1437,36 +1610,38 @@ function renderFretboard() {
     nut.className = 'absolute left-0 top-0 bottom-0 w-2 bg-[#e0d6cc] z-20 shadow-md border-r border-slate-400';
     elements.fretboardContainer.appendChild(nut);
 
-    // Render Frets
-    const FRET_WIDTH = 29;
+    // Render Frets - use percentage-based positioning to fill container
+    // Leave 2% padding on right to prevent clipping at 24th fret
+    const usableWidth = 98; // percentage
+    const FRET_WIDTH_PCT = usableWidth / numFrets;
 
     for (let i = 1; i <= numFrets; i++) {
         const fret = document.createElement('div');
-        const pos = i * FRET_WIDTH; 
+        const posPct = (i / numFrets) * usableWidth; 
         fret.className = 'fret-wire';
-        fret.style.left = `${pos}px`;
+        fret.style.left = `${posPct}%`;
         elements.fretboardContainer.appendChild(fret);
 
-        if ([3, 5, 7, 9].includes(i)) {
+        if ([3, 5, 7, 9, 15, 17, 19, 21].includes(i)) {
             const marker = document.createElement('div');
             marker.className = 'fret-marker';
-            marker.style.left = `${pos - (FRET_WIDTH/2)}px`;
+            marker.style.left = `${posPct - (FRET_WIDTH_PCT/2)}%`;
             elements.fretboardContainer.appendChild(marker);
         }
-        if (i === 12) {
+        if (i === 12 || i === 24) {
             const m1 = document.createElement('div');
             m1.className = 'fret-marker double-marker-1';
-            m1.style.left = `${pos - (FRET_WIDTH/2)}px`;
+            m1.style.left = `${posPct - (FRET_WIDTH_PCT/2)}%`;
             const m2 = document.createElement('div');
             m2.className = 'fret-marker double-marker-2';
-            m2.style.left = `${pos - (FRET_WIDTH/2)}px`;
+            m2.style.left = `${posPct - (FRET_WIDTH_PCT/2)}%`;
             elements.fretboardContainer.appendChild(m1);
             elements.fretboardContainer.appendChild(m2);
         }
         
         const num = document.createElement('div');
         num.className = 'absolute bottom-0 text-[8px] text-slate-500 font-mono';
-        num.style.left = `${pos - (FRET_WIDTH/2)}px`;
+        num.style.left = `${posPct - (FRET_WIDTH_PCT/2)}%`;
         num.innerText = i;
         elements.fretboardContainer.appendChild(num);
     }
@@ -1502,15 +1677,15 @@ function renderFretboard() {
                 noteDot.className = 'note-dot absolute shadow-sm';
                 noteDot.innerText = getNoteName(noteIndex, useFlats);
                 
-                let leftPos;
                 if (f === 0) {
-                   leftPos = -26; // Match tuning label position
+                   noteDot.style.left = '-26px'; // Match tuning label position
                    noteDot.style.zIndex = 15;
                 } else {
-                   leftPos = (f * FRET_WIDTH) - (FRET_WIDTH/2);
+                   const leftPosPct = ((f / numFrets) * usableWidth) - (FRET_WIDTH_PCT / 2);
+                   noteDot.style.left = `${leftPosPct}%`;
+                   noteDot.style.transform = 'translateX(-50%)';
                 }
 
-                noteDot.style.left = `${leftPos}px`;
                 noteDot.style.top = `${topPos}%`;
                 noteDot.style.marginTop = '-11px';
 
@@ -2002,6 +2177,269 @@ if (state.rhythmType) {
 }
 renderAll();
 renderLooper();
+/**
+ * CHORD RECOGNIZER
+ */
+
+// Extended chord formulas for recognition
+const CHORD_RECOGNITION = {
+    // Basic triads
+    'Maj': { intervals: [0, 4, 7], suffix: '' },
+    'min': { intervals: [0, 3, 7], suffix: 'm' },
+    'dim': { intervals: [0, 3, 6], suffix: 'dim' },
+    'aug': { intervals: [0, 4, 8], suffix: 'aug' },
+    '5': { intervals: [0, 7], suffix: '5' },
+    
+    // Suspended
+    'sus2': { intervals: [0, 2, 7], suffix: 'sus2' },
+    'sus4': { intervals: [0, 5, 7], suffix: 'sus4' },
+    '7sus4': { intervals: [0, 5, 7, 10], suffix: '7sus4' },
+    '9sus4': { intervals: [0, 5, 7, 10, 14], suffix: '9sus4' },
+    
+    // 6th chords
+    '6': { intervals: [0, 4, 7, 9], suffix: '6' },
+    'min6': { intervals: [0, 3, 7, 9], suffix: 'm6' },
+    '6/9': { intervals: [0, 4, 7, 9, 14], suffix: '6/9' },
+    
+    // 7th chords
+    '7': { intervals: [0, 4, 7, 10], suffix: '7' },
+    'Maj7': { intervals: [0, 4, 7, 11], suffix: 'maj7' },
+    'min7': { intervals: [0, 3, 7, 10], suffix: 'm7' },
+    'dim7': { intervals: [0, 3, 6, 9], suffix: 'dim7' },
+    'm7b5': { intervals: [0, 3, 6, 10], suffix: 'm7b5' },
+    'minMaj7': { intervals: [0, 3, 7, 11], suffix: 'm(maj7)' },
+    'aug7': { intervals: [0, 4, 8, 10], suffix: 'aug7' },
+    'Maj7#5': { intervals: [0, 4, 8, 11], suffix: 'maj7#5' },
+    '7b5': { intervals: [0, 4, 6, 10], suffix: '7b5' },
+    '7#5': { intervals: [0, 4, 8, 10], suffix: '7#5' },
+    
+    // 9th chords
+    'add9': { intervals: [0, 4, 7, 14], suffix: 'add9' },
+    'madd9': { intervals: [0, 3, 7, 14], suffix: 'm(add9)' },
+    '9': { intervals: [0, 4, 7, 10, 14], suffix: '9' },
+    'Maj9': { intervals: [0, 4, 7, 11, 14], suffix: 'maj9' },
+    'min9': { intervals: [0, 3, 7, 10, 14], suffix: 'm9' },
+    '7b9': { intervals: [0, 4, 7, 10, 13], suffix: '7b9' },
+    '7#9': { intervals: [0, 4, 7, 10, 15], suffix: '7#9' },
+    'Maj7b9': { intervals: [0, 4, 7, 11, 13], suffix: 'maj7b9' },
+    'Maj7#9': { intervals: [0, 4, 7, 11, 15], suffix: 'maj7#9' },
+    
+    // 11th chords
+    'add11': { intervals: [0, 4, 7, 17], suffix: 'add11' },
+    '11': { intervals: [0, 4, 7, 10, 14, 17], suffix: '11' },
+    'Maj11': { intervals: [0, 4, 7, 11, 14, 17], suffix: 'maj11' },
+    'min11': { intervals: [0, 3, 7, 10, 14, 17], suffix: 'm11' },
+    '7#11': { intervals: [0, 4, 7, 10, 18], suffix: '7#11' },
+    'Maj7#11': { intervals: [0, 4, 7, 11, 18], suffix: 'maj7#11' },
+    '9#11': { intervals: [0, 4, 7, 10, 14, 18], suffix: '9#11' },
+    
+    // 13th chords
+    'add13': { intervals: [0, 4, 7, 21], suffix: 'add13' },
+    '13': { intervals: [0, 4, 7, 10, 14, 21], suffix: '13' },
+    'Maj13': { intervals: [0, 4, 7, 11, 14, 21], suffix: 'maj13' },
+    'min13': { intervals: [0, 3, 7, 10, 14, 21], suffix: 'm13' },
+    '13b9': { intervals: [0, 4, 7, 10, 13, 21], suffix: '13b9' },
+    '13#9': { intervals: [0, 4, 7, 10, 15, 21], suffix: '13#9' },
+    
+    // Altered chords
+    '7alt': { intervals: [0, 4, 6, 10, 13], suffix: '7alt' },
+    '7b5b9': { intervals: [0, 4, 6, 10, 13], suffix: '7b5b9' },
+    '7#5#9': { intervals: [0, 4, 8, 10, 15], suffix: '7#5#9' },
+    '7b5#9': { intervals: [0, 4, 6, 10, 15], suffix: '7b5#9' },
+    '7#5b9': { intervals: [0, 4, 8, 10, 13], suffix: '7#5b9' },
+};
+
+// Chord recognizer state: array of 6 strings, each can be null (not played), 'muted', or fret number
+let recognizerState = [null, null, null, null, null, null];
+
+function renderRecognizerFretboard() {
+    const container = elements.recognizerFretboard;
+    container.innerHTML = '';
+    const numFretsToShow = 5;
+    const startFret = parseInt(elements.recognizerStartFret.value) || 0;
+    
+    // Create columns for each fret
+    for (let i = 0; i <= numFretsToShow; i++) {
+        const fret = startFret + i;
+        const isFirstCol = i === 0;
+        
+        const fretCol = document.createElement('div');
+        fretCol.className = 'recognizer-fret';
+        fretCol.style.flex = isFirstCol ? '0 0 40px' : '1';
+        if (isFirstCol && startFret === 0) {
+            fretCol.style.borderRight = '4px solid #e0d6cc';
+            fretCol.style.background = 'rgba(224, 214, 204, 0.1)';
+        }
+        
+        // Fret number label
+        const fretLabel = document.createElement('div');
+        fretLabel.className = 'absolute top-0 left-1/2 -translate-x-1/2 text-[8px] text-slate-500';
+        fretLabel.innerText = fret === 0 ? 'O' : fret;
+        fretCol.appendChild(fretLabel);
+        
+        // 6 strings (high to low)
+        for (let s = 0; s < 6; s++) {
+            const slot = document.createElement('div');
+            slot.className = 'recognizer-string-slot';
+            slot.dataset.string = s;
+            slot.dataset.fret = fret;
+            
+            // Check current state
+            const stringState = recognizerState[s];
+            if (stringState === 'muted' && isFirstCol) {
+                const note = document.createElement('div');
+                note.className = 'recognizer-note muted';
+                slot.appendChild(note);
+            } else if (stringState === fret && stringState !== null && stringState !== 'muted') {
+                const note = document.createElement('div');
+                note.className = 'recognizer-note';
+                const noteIndex = (state.tuning[s] + fret) % 12;
+                note.innerText = NOTES[noteIndex];
+                slot.appendChild(note);
+            }
+            
+            slot.addEventListener('click', () => handleRecognizerClick(s, fret, isFirstCol));
+            fretCol.appendChild(slot);
+        }
+        
+        container.appendChild(fretCol);
+    }
+    
+    recognizeChords();
+}
+
+function handleRecognizerClick(stringIndex, fret, isFirstCol) {
+    const currentState = recognizerState[stringIndex];
+    
+    if (currentState === null) {
+        // No note -> place note
+        recognizerState[stringIndex] = fret;
+    } else if (currentState === 'muted') {
+        // Muted -> clear (if clicking on first column) or place note
+        if (isFirstCol) {
+            recognizerState[stringIndex] = null;
+        } else {
+            recognizerState[stringIndex] = fret;
+        }
+    } else if (currentState === fret) {
+        // Clicking same fret -> mute
+        recognizerState[stringIndex] = 'muted';
+    } else {
+        // Different fret -> move note there
+        recognizerState[stringIndex] = fret;
+    }
+    
+    renderRecognizerFretboard();
+}
+
+function recognizeChords() {
+    const resultsContainer = elements.chordRecognizerResults;
+    
+    // Get played notes (excluding muted)
+    const playedNotes = [];
+    for (let s = 0; s < 6; s++) {
+        const fret = recognizerState[s];
+        if (fret !== null && fret !== 'muted') {
+            const noteIndex = (state.tuning[s] + fret) % 12;
+            if (!playedNotes.includes(noteIndex)) {
+                playedNotes.push(noteIndex);
+            }
+        }
+    }
+    
+    if (playedNotes.length < 2) {
+        resultsContainer.innerHTML = '<p class="text-sm text-slate-500 italic">Place at least 2 notes...</p>';
+        return;
+    }
+    
+    // Try to match against all chord types with all possible roots
+    const matches = [];
+    
+    for (let root = 0; root < 12; root++) {
+        for (const [chordType, chordData] of Object.entries(CHORD_RECOGNITION)) {
+            const chordNotes = chordData.intervals.map(i => (root + i) % 12);
+            
+            // Check if played notes are a subset of or equal to chord notes
+            const allNotesInChord = playedNotes.every(n => chordNotes.includes(n));
+            
+            if (allNotesInChord) {
+                // Calculate how many chord notes are covered
+                const coveredNotes = chordNotes.filter(n => playedNotes.includes(n));
+                const coverage = coveredNotes.length / chordNotes.length;
+                
+                // Check if root is in played notes (bass note bonus)
+                const hasRoot = playedNotes.includes(root);
+                
+                // Score: coverage + bonus for having root
+                const score = coverage + (hasRoot ? 0.3 : 0);
+                
+                if (coverage >= 0.6) { // At least 60% of chord covered
+                    matches.push({
+                        name: NOTES[root] + chordData.suffix,
+                        score,
+                        coverage: Math.round(coverage * 100)
+                    });
+                }
+            }
+        }
+    }
+    
+    // Sort by score descending and remove duplicates
+    matches.sort((a, b) => b.score - a.score);
+    const uniqueMatches = [];
+    const seenNames = new Set();
+    for (const m of matches) {
+        if (!seenNames.has(m.name)) {
+            seenNames.add(m.name);
+            uniqueMatches.push(m);
+        }
+    }
+    
+    if (uniqueMatches.length === 0) {
+        resultsContainer.innerHTML = '<p class="text-sm text-slate-500 italic">No matching chords found</p>';
+        return;
+    }
+    
+    // Render results
+    resultsContainer.innerHTML = '';
+    uniqueMatches.slice(0, 10).forEach((match, idx) => {
+        const card = document.createElement('div');
+        card.className = 'chord-result-card' + (idx === 0 ? ' best' : '');
+        card.innerHTML = `
+            <div class="text-base font-bold ${idx === 0 ? 'text-sky-300' : 'text-white'}">${match.name}</div>
+            <div class="text-[10px] text-slate-400">${match.coverage}% match</div>
+        `;
+        resultsContainer.appendChild(card);
+    });
+}
+
+function clearRecognizer() {
+    recognizerState = [null, null, null, null, null, null];
+    renderRecognizerFretboard();
+}
+
+// Chord Recognizer Event Listeners
+elements.openChordRecognizerBtn.addEventListener('click', () => {
+    elements.chordRecognizerModal.classList.remove('hidden');
+    renderRecognizerFretboard();
+});
+
+elements.closeChordRecognizerBtn.addEventListener('click', () => {
+    elements.chordRecognizerModal.classList.add('hidden');
+});
+
+elements.clearRecognizerBtn.addEventListener('click', clearRecognizer);
+
+elements.recognizerStartFret.addEventListener('change', () => {
+    clearRecognizer(); // Clear notes when changing starting fret
+});
+
+// Close modal on backdrop click
+elements.chordRecognizerModal.addEventListener('click', (e) => {
+    if (e.target === elements.chordRecognizerModal) {
+        elements.chordRecognizerModal.classList.add('hidden');
+    }
+});
 
 </script>
 </body>
