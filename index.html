@@ -181,6 +181,30 @@
             background-color: rgba(245, 158, 11, 0.1) !important;
         }
 
+        /* Collapsible Sections */
+        .section-toggle {
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .section-chevron {
+            transition: transform 0.2s ease;
+        }
+        .section-chevron.collapsed {
+            transform: rotate(-90deg);
+        }
+        .section-body {
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.2s ease;
+        }
+        .section-body.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
         /* Chord Recognizer Fretboard */
         .recognizer-fret {
             display: flex;
@@ -323,16 +347,17 @@
 
         <!-- Chord Looper Section -->
         <section class="p-3 border-b border-slate-800">
-            <div class="bg-slate-800 rounded-xl p-3 shadow-lg border border-slate-700">
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
                 <!-- Header -->
-                <div class="flex justify-between items-center mb-3">
+                <div class="section-toggle flex justify-between items-center p-3" data-section="looper">
                     <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         Chord Looper
-                    </h2>
-                    <div class="flex items-center gap-3">
+                        <svg class="section-chevron collapsed h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
                         <div class="flex items-center gap-1">
                             <label class="text-[10px] text-slate-500 uppercase">Time</label>
                             <select id="timeSigSelect" class="bg-slate-900 text-white text-xs p-1 rounded border border-slate-600 focus:outline-none focus:border-sky-500 w-16 text-center">
@@ -358,21 +383,37 @@
                     </div>
                 </div>
 
-                <!-- Beat Indicators -->
-                <div id="looperBeatIndicators" class="flex gap-1.5 mb-3 justify-center"></div>
+                <div id="looperBody" class="section-body collapsed p-3 pt-0" style="max-height: 2000px;">
+                  <div class="bg-slate-900/60 border border-slate-700 rounded-lg p-3">
+                    <!-- Beat Indicators -->
+                    <div id="looperBeatIndicators" class="flex gap-1.5 mb-3 justify-center"></div>
 
-                <!-- Tracks -->
-                <div id="looperTracks" class="space-y-2"></div>
+                    <!-- Tracks -->
+                    <div id="looperTracks" class="space-y-2"></div>
 
-                <!-- Add Track -->
-                <button id="addTrackBtn" class="w-full mt-2 py-2 border border-dashed border-slate-600 rounded-lg text-slate-500 text-xs font-semibold hover:border-slate-400 hover:text-slate-300 transition">
-                    + Add Track
-                </button>
+                    <!-- Add Track -->
+                    <button id="addTrackBtn" class="w-full mt-2 py-2 border border-dashed border-slate-600 rounded-lg text-slate-500 text-xs font-semibold hover:border-slate-400 hover:text-slate-300 transition">
+                        + Add Track
+                    </button>
+                  </div>
+                </div>
             </div>
         </section>
 
         <!-- Theory Controls -->
-        <section class="p-3 space-y-3">
+        <section class="p-3">
+            <div class="section-toggle flex items-center gap-2 mb-3" data-section="theory">
+                <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                    Theory &amp; Fretboard
+                    <svg class="section-chevron h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </h2>
+            </div>
+            <div id="theoryBody" class="section-body space-y-3" style="max-height: 5000px;">
             <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                 <!-- Key Select -->
                 <div class="flex-none w-28">
@@ -438,6 +479,7 @@
                 <div id="chordsContainer" class="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-7">
                     <!-- Populated by JS -->
                 </div>
+            </div>
             </div>
         </section>
 
@@ -2109,6 +2151,38 @@ elements.applyCustomTuning.addEventListener('click', () => {
     elements.tuningModal.classList.add('hidden');
     saveState();
 });
+
+// Collapsible Sections Logic
+document.querySelectorAll('.section-toggle').forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+        // Don't collapse if clicking on controls inside the header
+        if (e.target.closest('select, button:not(.section-toggle), input')) return;
+        const sectionKey = toggle.dataset.section;
+        const bodyId = sectionKey === 'looper' ? 'looperBody' : 'theoryBody';
+        const body = document.getElementById(bodyId);
+        const chevron = toggle.querySelector('.section-chevron');
+        const isCollapsed = body.classList.toggle('collapsed');
+        chevron.classList.toggle('collapsed', isCollapsed);
+        // Persist
+        const collapsed = JSON.parse(localStorage.getItem('gcCollapsed') || '{}');
+        collapsed[sectionKey] = isCollapsed;
+        localStorage.setItem('gcCollapsed', JSON.stringify(collapsed));
+    });
+});
+// Restore collapsed state
+(function() {
+    const collapsed = JSON.parse(localStorage.getItem('gcCollapsed') || '{}');
+    Object.entries(collapsed).forEach(([key, val]) => {
+        if (!val) return;
+        const bodyId = key === 'looper' ? 'looperBody' : 'theoryBody';
+        const body = document.getElementById(bodyId);
+        const toggle = document.querySelector(`.section-toggle[data-section="${key}"]`);
+        if (body && toggle) {
+            body.classList.add('collapsed');
+            toggle.querySelector('.section-chevron')?.classList.add('collapsed');
+        }
+    });
+})();
 
 // Info Accordion Logic
 elements.infoToggleBtn.addEventListener('click', () => {
