@@ -15,17 +15,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Custom Scrollbar for Fretboard */
-        .fretboard-scroll::-webkit-scrollbar {
-            height: 4px; /* Thinner scrollbar */
-        }
-        .fretboard-scroll::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-        .fretboard-scroll::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
         /* Fretboard Responsive Scroll */
         .fretboard-wrapper {
             overflow-x: auto;
@@ -2162,21 +2151,6 @@ elements.addTrackBtn.addEventListener('click', () => {
     saveState();
 });
 
-initUI();
-updateBpm(state.bpm);
-
-// Restore saved selections
-elements.keySelect.value = state.keyRoot;
-elements.scaleSelect.value = state.scaleKey;
-elements.timeSigSelect.value = `${state.looper.timeSignature[0]}/${state.looper.timeSignature[1]}`;
-elements.loopBarsSelect.value = state.looper.bars;
-elements.drumVolSlider.value = state.drumVolume * 100;
-if (state.rhythmType) {
-    elements.rhythmSelect.value = state.rhythmType;
-    metronome.setRhythm(state.rhythmType);
-}
-renderAll();
-renderLooper();
 /**
  * CHORD RECOGNIZER
  */
@@ -2440,6 +2414,22 @@ elements.chordRecognizerModal.addEventListener('click', (e) => {
         elements.chordRecognizerModal.classList.add('hidden');
     }
 });
+
+initUI();
+updateBpm(state.bpm);
+
+// Restore saved selections
+elements.keySelect.value = state.keyRoot;
+elements.scaleSelect.value = state.scaleKey;
+elements.timeSigSelect.value = `${state.looper.timeSignature[0]}/${state.looper.timeSignature[1]}`;
+elements.loopBarsSelect.value = state.looper.bars;
+elements.drumVolSlider.value = state.drumVolume * 100;
+if (state.rhythmType) {
+    elements.rhythmSelect.value = state.rhythmType;
+    metronome.setRhythm(state.rhythmType);
+}
+renderAll();
+renderLooper();
 
 </script>
 </body>
